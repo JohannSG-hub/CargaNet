@@ -6,9 +6,16 @@ import {
   getDocs,
   updateDoc,
   doc,
+  getDoc,
+  arrayUnion,
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+function generarCodigoEnvio() {
+  const parteAleatoria = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `CN-${Date.now()}-${parteAleatoria}`;
+}
 
 async function cargarClientes() {
   const snap = await getDocs(query(collection(db, "clientes"), orderBy("nombre")));
@@ -27,21 +34,34 @@ window.crearEnvio = async function () {
 
   const clienteId = select.value;
   const clienteNombre = select.selectedOptions[0]?.text;
+  const destinatario = document.getElementById("destinatario").value.trim();
   const descripcion = document.getElementById("descripcion").value.trim();
 
-  if (!clienteId || !descripcion) {
-    alert("Selecciona un cliente y escribe una descripción.");
+  if (!clienteId || !destinatario || !descripcion) {
+    alert("Selecciona un cliente y completa destinatario y descripción.");
     return;
   }
 
+  const fechaRegistro = new Date();
+  const codigo = generarCodigoEnvio();
+
   await addDoc(collection(db, "envios"), {
+    codigo,
     cliente_id: clienteId,
     cliente_nombre: clienteNombre,
+    destinatario,
     descripcion,
     estado: "almacen",
-    fecha: new Date()
+    fecha: fechaRegistro,
+    historial_estados: [
+      {
+        estado: "almacen",
+        fecha: fechaRegistro
+      }
+    ]
   });
 
+  document.getElementById("destinatario").value = "";
   document.getElementById("descripcion").value = "";
 
   await cargarEnvios();
@@ -75,7 +95,9 @@ async function cargarEnvios() {
 
     const card = `
       <div class="shipment-card mb-2">
+        <div class="small text-muted mb-1">Código: ${d.codigo || docu.id}</div>
         <strong>${d.cliente_nombre}</strong>
+        <p class="mb-1"><span class="text-muted">Destinatario:</span> ${d.destinatario || "No registrado"}</p>
         <p class="mb-1 text-muted">${d.descripcion}</p>
         ${btn}
       </div>
@@ -96,7 +118,18 @@ window.mover = async function (id, estado) {
 
   if (!nuevo) return;
 
-  await updateDoc(doc(db, "envios", id), { estado: nuevo });
+  const envioRef = doc(db, "envios", id);
+  const envioSnap = await getDoc(envioRef);
+
+  if (!envioSnap.exists()) return;
+
+  await updateDoc(envioRef, {
+    estado: nuevo,
+    historial_estados: arrayUnion({
+      estado: nuevo,
+      fecha: new Date()
+    })
+  });
 
   await cargarEnvios();
 };
