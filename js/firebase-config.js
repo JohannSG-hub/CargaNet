@@ -5,7 +5,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebas
 const firebaseConfig = {
   apiKey: "AIzaSyDO4qFl6TQYloc5WKanrYHwhIlsSAGoB88",
   authDomain: "carganet-168ef.firebaseapp.com",
-  projectId: "carganet-168ef"
+  projectId: "carganet-168ef",
 };
 
 const app = initializeApp(firebaseConfig);

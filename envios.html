@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Envíos</title>
@@ -8,29 +8,43 @@
 
 <body>
 
-<div class="container mt-4">
+<div class="sidebar">
+  <h4>CargaNet</h4>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="clientes.html">Clientes</a>
+  <a href="envios.html">Envíos</a>
+  <a href="reportes.html">Reportes</a>
+</div>
 
-<h3>Envíos</h3>
+<div class="content">
 
-<input id="cliente" class="form-control mb-2" placeholder="Cliente">
-<input id="descripcion" class="form-control mb-2" placeholder="Descripción">
+<h3>Gestión de Envíos</h3>
 
-<button onclick="crearEnvio()" class="btn btn-primary">Crear</button>
+<div class="card p-3 mb-3">
+  <select id="clienteSelect" class="form-control mb-2"></select>
+  <input id="descripcion" class="form-control mb-2" placeholder="Descripción">
+  <button onclick="crearEnvio()" class="btn btn-primary">Crear</button>
+</div>
 
-<hr>
+<div class="row">
+  <div class="col-md-4">
+    <h5>Almacén</h5>
+    <div id="almacen"></div>
+  </div>
 
-<h5>Almacén</h5>
-<div id="almacen"></div>
+  <div class="col-md-4">
+    <h5>Tránsito</h5>
+    <div id="transito"></div>
+  </div>
 
-<h5>Tránsito</h5>
-<div id="transito"></div>
-
-<h5>Entregado</h5>
-<div id="entregado"></div>
+  <div class="col-md-4">
+    <h5>Entregado</h5>
+    <div id="entregado"></div>
+  </div>
+</div>
 
 </div>
 
 <script type="module" src="js/envios.js"></script>
-
 </body>
 </html>

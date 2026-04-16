@@ -1,23 +1,46 @@
 import { db } from "./firebase-config.js";
-import { collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+import {
+  collection,
+  addDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const lista = document.getElementById("lista");
 
 window.guardarCliente = async function () {
+
   const nombre = document.getElementById("nombre").value;
   const dni = document.getElementById("dni").value;
 
-  await addDoc(collection(db, "clientes"), { nombre, dni });
+  if (!nombre || !dni) {
+    alert("Completa los campos");
+    return;
+  }
 
-  cargar();
+  await addDoc(collection(db, "clientes"), {
+    nombre,
+    dni
+  });
+
+  cargarClientes();
 };
 
-async function cargar() {
+async function cargarClientes() {
+
   lista.innerHTML = "";
-  const data = await getDocs(collection(db, "clientes"));
-  data.forEach(doc => {
-    lista.innerHTML += `<li>${doc.data().nombre}</li>`;
+
+  const snap = await getDocs(collection(db, "clientes"));
+
+  snap.forEach(doc => {
+    const d = doc.data();
+
+    lista.innerHTML += `
+      <li class="list-group-item">
+        ${d.nombre} - ${d.dni}
+      </li>
+    `;
   });
 }
 
-cargar();
+cargarClientes();

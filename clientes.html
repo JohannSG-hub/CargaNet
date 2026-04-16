@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Clientes</title>
@@ -8,19 +8,31 @@
 
 <body>
 
-<div class="container mt-4">
+<div class="sidebar">
+  <h4>CargaNet</h4>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="clientes.html">Clientes</a>
+  <a href="envios.html">Envíos</a>
+  <a href="reportes.html">Reportes</a>
+</div>
+
+<div class="content">
 
 <h3>Clientes</h3>
 
-<input id="nombre" class="form-control mb-2" placeholder="Nombre">
-<input id="dni" class="form-control mb-2" placeholder="DNI">
-<button onclick="guardarCliente()" class="btn btn-success">Guardar</button>
+<div class="card p-3 mb-3">
+  <input id="nombre" class="form-control mb-2" placeholder="Nombre">
+  <input id="dni" class="form-control mb-2" placeholder="DNI">
+  <button onclick="guardarCliente()" class="btn btn-success">Guardar</button>
+</div>
 
-<ul id="lista" class="mt-3"></ul>
+<div class="card p-3">
+  <h5>Lista</h5>
+  <ul id="lista" class="list-group"></ul>
+</div>
 
 </div>
 
 <script type="module" src="js/clientes.js"></script>
-
 </body>
 </html>
