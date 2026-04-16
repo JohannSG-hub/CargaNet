@@ -1,5 +1,6 @@
-import { db } from "./firebase-config.js";
-import { auth } from "./firebase-config.js";
+import { db, auth } from "./firebase-config.js";
+import { showError, showLoader, hideLoader, showValidationErrors, toast, confirmDelete } from "./ui.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
   collection,
@@ -9,9 +10,11 @@ import {
   getDoc,
   doc,
   query,
-  orderBy,
   Timestamp,
-  arrayUnion
+  arrayUnion,
+  where,
+  deleteDoc,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 function toTimestamp(dateValue) {
@@ -19,112 +22,127 @@ function toTimestamp(dateValue) {
   return Timestamp.fromDate(new Date(`${dateValue}T00:00:00`));
 }
 
-async function generarCodigoEnvio() {
-  const snap = await getDocs(collection(db, "envios"));
-  let maxCodigo = 0;
+function generarTracking(uid) {
+  const base = Date.now().toString(36).toUpperCase();
+  return `CN-${uid.slice(0, 4).toUpperCase()}-${base}`;
+}
 
-  snap.forEach((d) => {
-    const codigo = d.data().codigo || "";
-    const match = codigo.match(/^CN-(\d+)$/);
-    if (!match) return;
+async function generarCodigoEnvio(uid) {
+  let codigo = "";
+  let existe = true;
 
-    const numero = Number(match[1]);
-    if (Number.isFinite(numero) && numero > maxCodigo) {
-      maxCodigo = numero;
-    }
-  });
+  while (existe) {
+    codigo = generarTracking(uid);
+    const snap = await getDocs(query(collection(db, "envios"), where("codigo", "==", codigo), limit(1)));
+    existe = !snap.empty;
+  }
 
-  return `CN-${String(maxCodigo + 1).padStart(4, "0")}`;
+  return codigo;
 }
 
 async function cargarClientes() {
-  const snap = await getDocs(query(collection(db, "clientes"), orderBy("nombre")));
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const snap = await getDocs(query(collection(db, "clientes"), where("user_id", "==", user.uid)));
   const select = document.getElementById("clienteSelect");
 
   select.innerHTML = '<option value="">Selecciona un cliente</option>';
 
-  snap.forEach(d => {
-    select.innerHTML += `<option value="${d.id}">${d.data().nombre}</option>`;
+  snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"))
+    .forEach((d) => {
+      select.innerHTML += `<option value="${d.id}">${d.nombre}</option>`;
+    });
+}
+
+function limpiarFormulario() {
+  [
+    "descripcion", "destinatarioNombre", "destinatarioTelefono", "destinatarioDireccion",
+    "peso", "precio", "fechaEnvio", "fechaEntrega"
+  ].forEach((id) => {
+    document.getElementById(id).value = "";
   });
+  document.getElementById("clienteSelect").value = "";
 }
 
 window.crearEnvio = async function () {
-
+  const user = auth.currentUser;
   const select = document.getElementById("clienteSelect");
 
-  const user = auth.currentUser;
-  const clienteId = select.value;
-  const clienteNombre = select.selectedOptions[0]?.text;
-  const descripcion = document.getElementById("descripcion").value.trim();
-  const destinatarioNombre = document.getElementById("destinatarioNombre").value.trim();
-  const destinatarioTelefono = document.getElementById("destinatarioTelefono").value.trim();
-  const destinatarioDireccion = document.getElementById("destinatarioDireccion").value.trim();
-  const peso = Number(document.getElementById("peso").value);
-  const precio = Number(document.getElementById("precio").value);
-  const fechaEnvio = document.getElementById("fechaEnvio").value;
-  const fechaEntrega = document.getElementById("fechaEntrega").value;
-
   if (!user) {
-    alert("Tu sesión no está activa. Vuelve a iniciar sesión.");
+    await showError("Tu sesión no está activa. Vuelve a iniciar sesión.");
     return;
   }
 
-  if (
-    !clienteId ||
-    !descripcion ||
-    !destinatarioNombre ||
-    !destinatarioTelefono ||
-    !destinatarioDireccion ||
-    !fechaEnvio ||
-    !fechaEntrega ||
-    Number.isNaN(peso) ||
-    Number.isNaN(precio)
-  ) {
-    alert("Completa todos los campos del envío.");
+  const payload = {
+    clienteId: select.value,
+    clienteNombre: select.selectedOptions[0]?.text,
+    descripcion: document.getElementById("descripcion").value.trim(),
+    destinatarioNombre: document.getElementById("destinatarioNombre").value.trim(),
+    destinatarioTelefono: document.getElementById("destinatarioTelefono").value.trim(),
+    destinatarioDireccion: document.getElementById("destinatarioDireccion").value.trim(),
+    peso: Number(document.getElementById("peso").value),
+    precio: Number(document.getElementById("precio").value),
+    fechaEnvio: document.getElementById("fechaEnvio").value,
+    fechaEntrega: document.getElementById("fechaEntrega").value
+  };
+
+  const errores = [];
+  if (!payload.clienteId || !payload.descripcion || !payload.destinatarioNombre || !payload.destinatarioTelefono || !payload.destinatarioDireccion || !payload.fechaEnvio || !payload.fechaEntrega) {
+    errores.push("Completa todos los campos obligatorios del envío.");
+  }
+  if (!/^\d{9}$/.test(payload.destinatarioTelefono)) errores.push("El teléfono del destinatario debe tener 9 dígitos.");
+  if (!Number.isFinite(payload.peso) || payload.peso <= 0) errores.push("El peso debe ser mayor a 0.");
+  if (!Number.isFinite(payload.precio) || payload.precio <= 0) errores.push("El precio debe ser mayor a 0.");
+  if (payload.fechaEnvio && payload.fechaEntrega && payload.fechaEntrega < payload.fechaEnvio) {
+    errores.push("La fecha de entrega no puede ser menor a la fecha de envío.");
+  }
+
+  if (errores.length) {
+    await showValidationErrors(errores);
     return;
   }
 
-  const codigo = await generarCodigoEnvio();
-  const fechaCreacion = Timestamp.now();
+  showLoader();
+  try {
+    const codigo = await generarCodigoEnvio(user.uid);
+    const fechaCreacion = Timestamp.now();
 
-  await addDoc(collection(db, "envios"), {
-    codigo,
-    cliente_id: clienteId,
-    cliente_nombre: clienteNombre,
-    descripcion,
-    destinatario: {
-      nombre: destinatarioNombre,
-      telefono: destinatarioTelefono,
-      direccion: destinatarioDireccion
-    },
-    peso,
-    precio,
-    fecha_envio: toTimestamp(fechaEnvio),
-    fecha_entrega: toTimestamp(fechaEntrega),
-    user_id: user.uid,
-    estado: "almacen",
-    fecha: fechaCreacion,
-    historial: [
-      {
-        estado: "almacen",
-        fecha: fechaCreacion
-      }
-    ]
-  });
+    await addDoc(collection(db, "envios"), {
+      codigo,
+      cliente_id: payload.clienteId,
+      cliente_nombre: payload.clienteNombre,
+      descripcion: payload.descripcion,
+      destinatario: {
+        nombre: payload.destinatarioNombre,
+        telefono: payload.destinatarioTelefono,
+        direccion: payload.destinatarioDireccion
+      },
+      peso: payload.peso,
+      precio: payload.precio,
+      fecha_envio: toTimestamp(payload.fechaEnvio),
+      fecha_entrega: toTimestamp(payload.fechaEntrega),
+      user_id: user.uid,
+      estado: "almacen",
+      fecha: fechaCreacion,
+      historial: [{ estado: "almacen", fecha: fechaCreacion }]
+    });
 
-  document.getElementById("descripcion").value = "";
-  document.getElementById("destinatarioNombre").value = "";
-  document.getElementById("destinatarioTelefono").value = "";
-  document.getElementById("destinatarioDireccion").value = "";
-  document.getElementById("peso").value = "";
-  document.getElementById("precio").value = "";
-  document.getElementById("fechaEnvio").value = "";
-  document.getElementById("fechaEntrega").value = "";
-
-  await cargarEnvios();
+    limpiarFormulario();
+    await cargarEnvios();
+    await toast(`Envío creado (${codigo})`);
+  } catch (e) {
+    await showError("No se pudo crear el envío.");
+  } finally {
+    hideLoader();
+  }
 };
 
 async function cargarEnvios() {
+  const user = auth.currentUser;
+  if (!user) return;
 
   const alm = document.getElementById("almacen");
   const tra = document.getElementById("transito");
@@ -134,61 +152,93 @@ async function cargarEnvios() {
   tra.innerHTML = "";
   ent.innerHTML = "";
 
-  const snap = await getDocs(query(collection(db, "envios"), orderBy("fecha", "desc")));
+  showLoader();
+  try {
+    const snap = await getDocs(query(collection(db, "envios"), where("user_id", "==", user.uid)));
+    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => {
+      const aMs = a.fecha?.toMillis ? a.fecha.toMillis() : 0;
+      const bMs = b.fecha?.toMillis ? b.fecha.toMillis() : 0;
+      return bMs - aMs;
+    });
 
-  if (snap.empty) {
-    alm.innerHTML = '<p class="text-muted">Sin envíos en almacén.</p>';
-    tra.innerHTML = '<p class="text-muted">Sin envíos en tránsito.</p>';
-    ent.innerHTML = '<p class="text-muted">Sin envíos entregados.</p>';
-    return;
+    if (!rows.length) {
+      alm.innerHTML = '<p class="text-muted">Sin envíos en almacén.</p>';
+      tra.innerHTML = '<p class="text-muted">Sin envíos en tránsito.</p>';
+      ent.innerHTML = '<p class="text-muted">Sin envíos entregados.</p>';
+      return;
+    }
+
+    rows.forEach((d) => {
+      const btnAvanzar = d.estado === "entregado" ? "" : `<button onclick="mover('${d.id}')" class="btn btn-sm btn-outline-dark mt-2 w-100">Avanzar estado</button>`;
+      const btnEliminar = `<button onclick="eliminarEnvio('${d.id}')" class="btn btn-sm btn-outline-danger mt-2 w-100">Eliminar</button>`;
+
+      const card = `
+        <div class="shipment-card mb-2">
+          <div><strong>Código:</strong> ${d.codigo || "Sin código"}</div>
+          <strong>${d.cliente_nombre || "Sin cliente"}</strong>
+          <p class="mb-1"><strong>Estado actual:</strong> ${d.estado}</p>
+          <p class="mb-1 text-muted">${d.descripcion}</p>
+          ${btnAvanzar}
+          ${btnEliminar}
+        </div>
+      `;
+
+      if (d.estado === "almacen") alm.innerHTML += card;
+      else if (d.estado === "transito") tra.innerHTML += card;
+      else ent.innerHTML += card;
+    });
+  } finally {
+    hideLoader();
   }
-
-  snap.forEach(docu => {
-    const d = docu.data();
-
-    const btn = d.estado === "entregado"
-      ? ""
-      : `<button onclick="mover('${docu.id}')" class="btn btn-sm btn-outline-dark mt-2 w-100">Avanzar estado</button>`;
-
-    const card = `
-      <div class="shipment-card mb-2">
-        <div><strong>Código:</strong> ${d.codigo || "Sin código"}</div>
-        <strong>${d.cliente_nombre}</strong>
-        <p class="mb-1"><strong>Estado actual:</strong> ${d.estado}</p>
-        <p class="mb-1 text-muted">${d.descripcion}</p>
-        ${btn}
-      </div>
-    `;
-
-    if (d.estado === "almacen") alm.innerHTML += card;
-    else if (d.estado === "transito") tra.innerHTML += card;
-    else ent.innerHTML += card;
-  });
 }
 
 window.mover = async function (id) {
-  const envioRef = doc(db, "envios", id);
-  const envioSnap = await getDoc(envioRef);
-  if (!envioSnap.exists()) return;
+  showLoader();
+  try {
+    const envioRef = doc(db, "envios", id);
+    const envioSnap = await getDoc(envioRef);
+    if (!envioSnap.exists()) return;
 
-  const estado = envioSnap.data().estado;
-  let nuevo = "";
+    const estado = envioSnap.data().estado;
+    let nuevo = "";
 
-  if (estado === "almacen") nuevo = "transito";
-  else if (estado === "transito") nuevo = "entregado";
+    if (estado === "almacen") nuevo = "transito";
+    else if (estado === "transito") nuevo = "entregado";
 
-  if (!nuevo) return;
+    if (!nuevo) return;
 
-  await updateDoc(envioRef, {
-    estado: nuevo,
-    historial: arrayUnion({
+    await updateDoc(envioRef, {
       estado: nuevo,
-      fecha: Timestamp.now()
-    })
-  });
+      historial: arrayUnion({ estado: nuevo, fecha: Timestamp.now() })
+    });
 
-  await cargarEnvios();
+    await cargarEnvios();
+    await toast(`Estado actualizado a ${nuevo}`);
+  } catch (e) {
+    await showError("No se pudo actualizar el estado.");
+  } finally {
+    hideLoader();
+  }
 };
 
-cargarClientes();
-cargarEnvios();
+window.eliminarEnvio = async function (id) {
+  const confirmado = await confirmDelete("Se eliminará el envío y su historial de seguimiento.");
+  if (!confirmado) return;
+
+  showLoader();
+  try {
+    await deleteDoc(doc(db, "envios", id));
+    await cargarEnvios();
+    await toast("Envío eliminado", "success");
+  } catch (e) {
+    await showError("No se pudo eliminar el envío.");
+  } finally {
+    hideLoader();
+  }
+};
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  cargarClientes();
+  cargarEnvios();
+});
