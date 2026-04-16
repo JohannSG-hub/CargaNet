@@ -1,8 +1,12 @@
-import { db } from "./firebase-config.js";
+import { db, auth } from "./firebase-config.js";
+import { showLoader, hideLoader } from "./ui.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 import {
   collection,
-  getDocs
+  getDocs,
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 let graficoEstados = null;
@@ -19,15 +23,7 @@ function formatoMoneda(valor) {
 
 function normalizarFecha(fecha) {
   if (!fecha) return null;
-
-  if (typeof fecha.toDate === "function") {
-    return fecha.toDate();
-  }
-
-  if (fecha.seconds) {
-    return new Date(fecha.seconds * 1000);
-  }
-
+  if (typeof fecha.toDate === "function") return fecha.toDate();
   const parsed = new Date(fecha);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
@@ -42,116 +38,80 @@ function etiquetaFechaISO(claveISO) {
 }
 
 async function cargarDashboard() {
-  const clientes = await getDocs(collection(db, "clientes"));
-  document.getElementById("clientes").innerText = clientes.size;
+  const user = auth.currentUser;
+  if (!user) return;
 
-  const envios = await getDocs(collection(db, "envios"));
+  showLoader();
+  try {
+    const clientes = await getDocs(query(collection(db, "clientes"), where("user_id", "==", user.uid)));
+    document.getElementById("clientes").innerText = clientes.size;
 
-  let almacen = 0;
-  let transito = 0;
-  let entregado = 0;
-  let ingresos = 0;
+    const envios = await getDocs(query(collection(db, "envios"), where("user_id", "==", user.uid)));
 
-  const enviosPorDia = {};
-  const ingresosPorFecha = {};
+    let almacen = 0;
+    let transito = 0;
+    let entregado = 0;
+    let ingresos = 0;
 
-  envios.forEach((doc) => {
-    const d = doc.data();
+    const enviosPorDia = {};
+    const ingresosPorFecha = {};
 
-    if (d.estado === "almacen") almacen++;
-    if (d.estado === "transito") transito++;
-    if (d.estado === "entregado") entregado++;
+    envios.forEach((doc) => {
+      const d = doc.data();
+      if (d.estado === "almacen") almacen++;
+      if (d.estado === "transito") transito++;
+      if (d.estado === "entregado") entregado++;
 
-    const precio = Number(d.precio) || 0;
-    ingresos += precio;
+      const precio = Number(d.precio) || 0;
+      ingresos += precio;
 
-    const fechaBase = normalizarFecha(d.fecha_envio) || normalizarFecha(d.fecha);
-    if (!fechaBase) return;
+      const fechaBase = normalizarFecha(d.fecha_envio) || normalizarFecha(d.fecha);
+      if (!fechaBase) return;
 
-    const fechaClave = claveFecha(fechaBase);
+      const fechaClave = claveFecha(fechaBase);
+      enviosPorDia[fechaClave] = (enviosPorDia[fechaClave] || 0) + 1;
+      ingresosPorFecha[fechaClave] = (ingresosPorFecha[fechaClave] || 0) + precio;
+    });
 
-    enviosPorDia[fechaClave] = (enviosPorDia[fechaClave] || 0) + 1;
-    ingresosPorFecha[fechaClave] = (ingresosPorFecha[fechaClave] || 0) + precio;
-  });
+    document.getElementById("transito").innerText = transito;
+    document.getElementById("entregado").innerText = entregado;
+    document.getElementById("ingresos").innerText = formatoMoneda(ingresos);
 
-  document.getElementById("transito").innerText = transito;
-  document.getElementById("entregado").innerText = entregado;
-  document.getElementById("ingresos").innerText = formatoMoneda(ingresos);
+    if (graficoEstados) graficoEstados.destroy();
+    if (graficoEnviosDia) graficoEnviosDia.destroy();
+    if (graficoFechas) graficoFechas.destroy();
 
-  if (graficoEstados) graficoEstados.destroy();
-  if (graficoEnviosDia) graficoEnviosDia.destroy();
-  if (graficoFechas) graficoFechas.destroy();
-
-  graficoEstados = new Chart(document.getElementById("graficoEstados"), {
-    type: "doughnut",
-    data: {
-      labels: ["Almacén", "Tránsito", "Entregado"],
-      datasets: [{
-        label: "Cantidad de envíos",
-        backgroundColor: ["#1d4ed8", "#f59e0b", "#16a34a"],
-        data: [almacen, transito, entregado]
-      }]
-    },
-    options: {
-      responsive: true
-    }
-  });
-
-  const fechasOrdenadasEnvios = Object.keys(enviosPorDia).sort();
-  const etiquetasEnviosDia = fechasOrdenadasEnvios.map(etiquetaFechaISO);
-  const datosEnviosDia = fechasOrdenadasEnvios.map((fecha) => enviosPorDia[fecha]);
-
-  graficoEnviosDia = new Chart(document.getElementById("graficoEnviosDia"), {
-    type: "bar",
-    data: {
-      labels: etiquetasEnviosDia,
-      datasets: [{
-        label: "Envíos",
-        backgroundColor: "#2563eb",
-        borderRadius: 6,
-        data: datosEnviosDia
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            precision: 0
-          }
-        }
+    graficoEstados = new Chart(document.getElementById("graficoEstados"), {
+      type: "doughnut",
+      data: {
+        labels: ["Almacén", "Tránsito", "Entregado"],
+        datasets: [{ backgroundColor: ["#1d4ed8", "#f59e0b", "#16a34a"], data: [almacen, transito, entregado] }]
       }
-    }
-  });
+    });
 
-  const fechasOrdenadasIngresos = Object.keys(ingresosPorFecha).sort();
-  const etiquetasFechas = fechasOrdenadasIngresos.map(etiquetaFechaISO);
-  const datosFechas = fechasOrdenadasIngresos.map((fecha) => ingresosPorFecha[fecha]);
-
-  graficoFechas = new Chart(document.getElementById("graficoFechas"), {
-    type: "line",
-    data: {
-      labels: etiquetasFechas,
-      datasets: [{
-        label: "Ingresos",
-        data: datosFechas,
-        borderColor: "#0f766e",
-        backgroundColor: "rgba(15, 118, 110, 0.15)",
-        fill: true,
-        tension: 0.25,
-        pointRadius: 3
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
+    const fechasOrdenadasEnvios = Object.keys(enviosPorDia).sort();
+    graficoEnviosDia = new Chart(document.getElementById("graficoEnviosDia"), {
+      type: "bar",
+      data: {
+        labels: fechasOrdenadasEnvios.map(etiquetaFechaISO),
+        datasets: [{ label: "Envíos", backgroundColor: "#2563eb", borderRadius: 6, data: fechasOrdenadasEnvios.map((f) => enviosPorDia[f]) }]
       }
-    }
-  });
+    });
+
+    const fechasOrdenadasIngresos = Object.keys(ingresosPorFecha).sort();
+    graficoFechas = new Chart(document.getElementById("graficoFechas"), {
+      type: "line",
+      data: {
+        labels: fechasOrdenadasIngresos.map(etiquetaFechaISO),
+        datasets: [{ label: "Ingresos", data: fechasOrdenadasIngresos.map((f) => ingresosPorFecha[f]), borderColor: "#0f766e", backgroundColor: "rgba(15, 118, 110, 0.15)", fill: true, tension: 0.25 }]
+      }
+    });
+  } finally {
+    hideLoader();
+  }
 }
 
-cargarDashboard();
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  cargarDashboard();
+});
