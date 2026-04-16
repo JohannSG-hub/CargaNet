@@ -12,22 +12,32 @@ import {
 
 window.login = async function () {
   try {
-    const email = document.getElementById("loginEmail").value;
+    const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value;
+
+    if (!email || !password) {
+      alert("Ingresa correo y contraseña.");
+      return;
+    }
 
     await signInWithEmailAndPassword(auth, email, password);
 
     window.location.href = "dashboard.html";
   } catch (e) {
-    alert(e.message);
+    alert("No fue posible iniciar sesión. Verifica tus datos.");
   }
 };
 
 window.registrar = async function () {
   try {
-    const nombre = document.getElementById("nombre").value;
-    const email = document.getElementById("registroEmail").value;
+    const nombre = document.getElementById("nombre").value.trim();
+    const email = document.getElementById("registroEmail").value.trim();
     const password = document.getElementById("registroPassword").value;
+
+    if (!nombre || !email || !password) {
+      alert("Completa todos los campos.");
+      return;
+    }
 
     const user = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -37,8 +47,8 @@ window.registrar = async function () {
       rol: "admin"
     });
 
-    alert("Cuenta creada");
+    alert("Cuenta creada correctamente. Ya puedes iniciar sesión.");
   } catch (e) {
-    alert(e.message);
+    alert("No fue posible registrar la cuenta.");
   }
 };

@@ -1,13 +1,9 @@
-import { db, auth } from "./firebase-config.js";
+import { db } from "./firebase-config.js";
 
 import {
   collection,
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-window.logout = () => signOut(auth);
 
 async function cargarDashboard() {
 
@@ -16,7 +12,9 @@ async function cargarDashboard() {
 
   const envios = await getDocs(collection(db, "envios"));
 
-  let almacen = 0, transito = 0, entregado = 0;
+  let almacen = 0;
+  let transito = 0;
+  let entregado = 0;
 
   envios.forEach(doc => {
     const d = doc.data();
@@ -32,10 +30,20 @@ async function cargarDashboard() {
   new Chart(document.getElementById("graficoEstados"), {
     type: "bar",
     data: {
-      labels: ["Almacén","Transito","Entregado"],
+      labels: ["Almacén", "Tránsito", "Entregado"],
       datasets: [{
+        label: "Cantidad de envíos",
+        backgroundColor: ["#1d4ed8", "#f59e0b", "#16a34a"],
         data: [almacen, transito, entregado]
       }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
     }
   });
 }
