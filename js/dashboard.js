@@ -5,8 +5,43 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-async function cargarDashboard() {
+let graficoEstados = null;
+let graficoEnviosDia = null;
+let graficoFechas = null;
 
+function formatoMoneda(valor) {
+  return new Intl.NumberFormat("es-DO", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2
+  }).format(valor);
+}
+
+function normalizarFecha(fecha) {
+  if (!fecha) return null;
+
+  if (typeof fecha.toDate === "function") {
+    return fecha.toDate();
+  }
+
+  if (fecha.seconds) {
+    return new Date(fecha.seconds * 1000);
+  }
+
+  const parsed = new Date(fecha);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function claveFecha(fecha) {
+  return fecha.toISOString().slice(0, 10);
+}
+
+function etiquetaFechaISO(claveISO) {
+  const [anio, mes, dia] = claveISO.split("-");
+  return `${dia}/${mes}/${anio}`;
+}
+
+async function cargarDashboard() {
   const clientes = await getDocs(collection(db, "clientes"));
   document.getElementById("clientes").innerText = clientes.size;
 
@@ -15,20 +50,40 @@ async function cargarDashboard() {
   let almacen = 0;
   let transito = 0;
   let entregado = 0;
+  let ingresos = 0;
 
-  envios.forEach(doc => {
+  const enviosPorDia = {};
+  const ingresosPorFecha = {};
+
+  envios.forEach((doc) => {
     const d = doc.data();
 
     if (d.estado === "almacen") almacen++;
     if (d.estado === "transito") transito++;
     if (d.estado === "entregado") entregado++;
+
+    const precio = Number(d.precio) || 0;
+    ingresos += precio;
+
+    const fechaBase = normalizarFecha(d.fecha_envio) || normalizarFecha(d.fecha);
+    if (!fechaBase) return;
+
+    const fechaClave = claveFecha(fechaBase);
+
+    enviosPorDia[fechaClave] = (enviosPorDia[fechaClave] || 0) + 1;
+    ingresosPorFecha[fechaClave] = (ingresosPorFecha[fechaClave] || 0) + precio;
   });
 
   document.getElementById("transito").innerText = transito;
   document.getElementById("entregado").innerText = entregado;
+  document.getElementById("ingresos").innerText = formatoMoneda(ingresos);
 
-  new Chart(document.getElementById("graficoEstados"), {
-    type: "bar",
+  if (graficoEstados) graficoEstados.destroy();
+  if (graficoEnviosDia) graficoEnviosDia.destroy();
+  if (graficoFechas) graficoFechas.destroy();
+
+  graficoEstados = new Chart(document.getElementById("graficoEstados"), {
+    type: "doughnut",
     data: {
       labels: ["Almacén", "Tránsito", "Entregado"],
       datasets: [{
@@ -38,10 +93,61 @@ async function cargarDashboard() {
       }]
     },
     options: {
+      responsive: true
+    }
+  });
+
+  const fechasOrdenadasEnvios = Object.keys(enviosPorDia).sort();
+  const etiquetasEnviosDia = fechasOrdenadasEnvios.map(etiquetaFechaISO);
+  const datosEnviosDia = fechasOrdenadasEnvios.map((fecha) => enviosPorDia[fecha]);
+
+  graficoEnviosDia = new Chart(document.getElementById("graficoEnviosDia"), {
+    type: "bar",
+    data: {
+      labels: etiquetasEnviosDia,
+      datasets: [{
+        label: "Envíos",
+        backgroundColor: "#2563eb",
+        borderRadius: 6,
+        data: datosEnviosDia
+      }]
+    },
+    options: {
       responsive: true,
-      plugins: {
-        legend: {
-          display: false
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+
+  const fechasOrdenadasIngresos = Object.keys(ingresosPorFecha).sort();
+  const etiquetasFechas = fechasOrdenadasIngresos.map(etiquetaFechaISO);
+  const datosFechas = fechasOrdenadasIngresos.map((fecha) => ingresosPorFecha[fecha]);
+
+  graficoFechas = new Chart(document.getElementById("graficoFechas"), {
+    type: "line",
+    data: {
+      labels: etiquetasFechas,
+      datasets: [{
+        label: "Ingresos",
+        data: datosFechas,
+        borderColor: "#0f766e",
+        backgroundColor: "rgba(15, 118, 110, 0.15)",
+        fill: true,
+        tension: 0.25,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
         }
       }
     }
