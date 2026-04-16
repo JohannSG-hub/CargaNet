@@ -1,14 +1,30 @@
-import { auth } from "./firebase-config.js";
-import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { auth, db } from "./firebase-config.js";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 window.login = async function () {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
 
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    window.location.href = "dashboard.html";
-  } catch (error) {
-    alert(error.message);
-  }
-}
+  await signInWithEmailAndPassword(auth, email, password);
+  window.location.href = "dashboard.html";
+};
+
+window.registrar = async function () {
+  const nombre = document.getElementById("nombre").value;
+  const email = document.getElementById("registroEmail").value;
+  const password = document.getElementById("registroPassword").value;
+
+  const user = await createUserWithEmailAndPassword(auth, email, password);
+
+  await setDoc(doc(db, "usuarios", user.user.uid), {
+    nombre,
+    email
+  });
+
+  alert("Registrado");
+};

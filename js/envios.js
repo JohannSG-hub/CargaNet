@@ -1,18 +1,6 @@
 import { db } from "./firebase-config.js";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  updateDoc,
-  doc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { collection, addDoc, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const colAlmacen = document.getElementById("almacen");
-const colTransito = document.getElementById("transito");
-const colEntregado = document.getElementById("entregado");
-
-
-// CREAR ENVÍO
 window.crearEnvio = async function () {
   const cliente = document.getElementById("cliente").value;
   const descripcion = document.getElementById("descripcion").value;
@@ -23,61 +11,36 @@ window.crearEnvio = async function () {
     estado: "almacen"
   });
 
-  location.reload();
+  cargar();
 };
 
+async function cargar() {
+  const alm = document.getElementById("almacen");
+  const tra = document.getElementById("transito");
+  const ent = document.getElementById("entregado");
 
-// CARGAR ENVÍOS
-async function cargarEnvios() {
+  alm.innerHTML = "";
+  tra.innerHTML = "";
+  ent.innerHTML = "";
 
-  colAlmacen.innerHTML = "";
-  colTransito.innerHTML = "";
-  colEntregado.innerHTML = "";
+  const data = await getDocs(collection(db, "envios"));
 
-  const querySnapshot = await getDocs(collection(db, "envios"));
+  data.forEach(docu => {
+    const d = docu.data();
 
-  querySnapshot.forEach((docu) => {
-    const data = docu.data();
+    const btn = `<button onclick="mover('${docu.id}','${d.estado}')">Mover</button>`;
 
-    const card = document.createElement("div");
-    card.className = "card p-2 mb-2 card-envio shadow-sm";
-
-    card.innerHTML = `
-      <strong>${data.cliente}</strong><br>
-      <small>${data.descripcion}</small><br>
-      <button class="btn btn-sm btn-primary mt-2" onclick="cambiarEstado('${docu.id}', '${data.estado}')">
-        Avanzar
-      </button>
-    `;
-
-    if (data.estado === "almacen") {
-      colAlmacen.appendChild(card);
-    } else if (data.estado === "transito") {
-      colTransito.appendChild(card);
-    } else {
-      colEntregado.appendChild(card);
-    }
-
+    if(d.estado=="almacen") alm.innerHTML += `<div>${d.cliente} ${btn}</div>`;
+    else if(d.estado=="transito") tra.innerHTML += `<div>${d.cliente} ${btn}</div>`;
+    else ent.innerHTML += `<div>${d.cliente}</div>`;
   });
 }
 
+window.mover = async function(id, estado){
+  let nuevo = estado=="almacen" ? "transito" : "entregado";
 
-// CAMBIAR ESTADO
-window.cambiarEstado = async function (id, estadoActual) {
-
-  let nuevoEstado = "";
-
-  if (estadoActual === "almacen") nuevoEstado = "transito";
-  else if (estadoActual === "transito") nuevoEstado = "entregado";
-  else return;
-
-  await updateDoc(doc(db, "envios", id), {
-    estado: nuevoEstado
-  });
-
-  cargarEnvios();
+  await updateDoc(doc(db,"envios",id),{estado:nuevo});
+  cargar();
 };
 
-
-// INIT
-cargarEnvios();
+cargar();
