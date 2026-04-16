@@ -1,7 +1,19 @@
 import { auth, db } from "./firebase-config.js";
 
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+window.logout = async function () {
+  await signOut(auth);
+  window.location.href = "index.html";
+};
 
 onAuthStateChanged(auth, async (user) => {
 

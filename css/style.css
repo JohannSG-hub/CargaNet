@@ -1,129 +1,169 @@
+:root {
+  --bg: #f3f6fb;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #0f172a;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --primary-strong: #1d4ed8;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
 * {
   box-sizing: border-box;
-  font-family: 'Segoe UI', sans-serif;
 }
 
 body {
   margin: 0;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  color: var(--text);
+  background: var(--bg);
+  font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* FONDO ANIMADO */
-.bg {
-  position: absolute;
+.auth-page {
+  background: radial-gradient(circle at 10% 20%, #1d4ed8 0%, #312e81 35%, #0f172a 100%);
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
   width: 100%;
-  height: 100%;
-  background: linear-gradient(120deg, #1e3a8a, #4f46e5, #9333ea);
-  background-size: 300% 300%;
-  animation: gradientMove 10s ease infinite;
-}
-
-@keyframes gradientMove {
-  0% { background-position: 0% }
-  50% { background-position: 100% }
-  100% { background-position: 0% }
-}
-
-/* CONTENEDOR */
-.container {
-  position: relative;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* TARJETA */
-.card {
-  width: 360px;
-  padding: 40px;
+  max-width: 400px;
+  border: none;
   border-radius: 16px;
-  backdrop-filter: blur(20px);
-  background: rgba(255,255,255,0.1);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-  color: white;
-  animation: fadeIn 0.6s ease;
+  box-shadow: 0 16px 50px rgba(2, 6, 23, 0.32);
 }
 
-@keyframes fadeIn {
-  from {opacity:0; transform: translateY(20px)}
-  to {opacity:1}
+.layout {
+  display: flex;
+  min-height: 100vh;
 }
 
-h2 {
-  margin-bottom: 5px;
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 22px 16px;
+  border-right: 1px solid #1e293b;
 }
 
-.subtitle {
-  font-size: 14px;
-  opacity: 0.8;
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.sidebar a {
+  display: block;
+  text-decoration: none;
+  color: #cbd5e1;
+  padding: 10px 12px;
+  margin: 4px 0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+  background: #1e293b;
+  color: #fff;
+}
+
+.main {
+  flex: 1;
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
-/* INPUTS */
-.input-group {
-  position: relative;
-  margin-bottom: 20px;
+.topbar h3 {
+  margin: 0;
+  font-weight: 700;
 }
 
-.input-group input {
-  width: 100%;
-  padding: 12px;
+.user-meta {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.metric-card {
   border: none;
-  outline: none;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.2);
-  color: white;
+  border-radius: 14px;
+  color: #fff;
 }
 
-.input-group label {
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  transform: translateY(-50%);
-  font-size: 14px;
-  opacity: 0.7;
-  pointer-events: none;
-  transition: 0.3s;
+.metric-card h2 {
+  margin: 0;
+  font-weight: 700;
 }
 
-.input-group input:focus + label,
-.input-group input:valid + label {
-  top: -8px;
-  font-size: 11px;
-  color: #c7d2fe;
+.card-title-muted {
+  font-size: 0.9rem;
+  opacity: 0.9;
 }
 
-/* BOTÓN */
-.btn {
-  width: 100%;
+.kanban-column {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-height: 260px;
+}
+
+.kanban-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.kanban-content {
   padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  cursor: pointer;
-  transition: 0.3s;
 }
 
-.btn:hover {
-  transform: scale(1.03);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+.shipment-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
 }
 
-/* SWITCH */
-.switch {
-  margin-top: 15px;
-  font-size: 14px;
+.table thead th {
+  background: #f8fafc;
 }
 
-.switch span {
-  color: #c7d2fe;
-  cursor: pointer;
-}
+@media (max-width: 991px) {
+  .layout {
+    display: block;
+  }
 
-/* OCULTAR */
-.hidden {
-  display: none;
+  .sidebar {
+    width: 100%;
+    height: auto;
+  }
+
+  .main {
+    padding: 16px;
+  }
 }
