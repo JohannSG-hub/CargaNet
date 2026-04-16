@@ -30,11 +30,20 @@
     <div class="surface p-3 mb-3">
       <h6>Nuevo cliente</h6>
       <div class="row g-2">
-        <div class="col-md-5">
+        <div class="col-md-6">
           <input id="nombre" class="form-control" placeholder="Nombre completo">
         </div>
-        <div class="col-md-5">
-          <input id="dni" class="form-control" placeholder="DNI">
+        <div class="col-md-3">
+          <input id="dni" class="form-control" placeholder="DNI (8 dígitos)">
+        </div>
+        <div class="col-md-3">
+          <input id="telefono" class="form-control" placeholder="Teléfono (9 dígitos)">
+        </div>
+        <div class="col-md-6">
+          <input id="correo" type="email" class="form-control" placeholder="Correo electrónico">
+        </div>
+        <div class="col-md-4">
+          <input id="direccion" class="form-control" placeholder="Dirección">
         </div>
         <div class="col-md-2 d-grid">
           <button onclick="guardarCliente()" class="btn btn-primary">Guardar</button>
