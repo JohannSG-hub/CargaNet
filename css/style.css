@@ -1,3 +1,129 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
 body {
-  background-color: #f5f5f5;
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* FONDO ANIMADO */
+.bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, #1e3a8a, #4f46e5, #9333ea);
+  background-size: 300% 300%;
+  animation: gradientMove 10s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% }
+  50% { background-position: 100% }
+  100% { background-position: 0% }
+}
+
+/* CONTENEDOR */
+.container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* TARJETA */
+.card {
+  width: 360px;
+  padding: 40px;
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  background: rgba(255,255,255,0.1);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  color: white;
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from {opacity:0; transform: translateY(20px)}
+  to {opacity:1}
+}
+
+h2 {
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-bottom: 20px;
+}
+
+/* INPUTS */
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  outline: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.input-group label {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.7;
+  pointer-events: none;
+  transition: 0.3s;
+}
+
+.input-group input:focus + label,
+.input-group input:valid + label {
+  top: -8px;
+  font-size: 11px;
+  color: #c7d2fe;
+}
+
+/* BOTÓN */
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+}
+
+/* SWITCH */
+.switch {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.switch span {
+  color: #c7d2fe;
+  cursor: pointer;
+}
+
+/* OCULTAR */
+.hidden {
+  display: none;
 }
