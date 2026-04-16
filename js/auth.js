@@ -7,11 +7,8 @@ window.login = async function () {
 
   try {
     await signInWithEmailAndPassword(auth, email, password);
-    alert("Login correcto");
-
     window.location.href = "dashboard.html";
-
   } catch (error) {
-    alert("Error: " + error.message);
+    alert(error.message);
   }
 }
