@@ -30,29 +30,51 @@
     </div>
 
     <div class="row g-3">
-      <div class="col-md-4">
+      <div class="col-md-3 col-sm-6">
         <div class="metric-card p-3 bg-primary">
           <div class="card-title-muted">Clientes registrados</div>
           <h2 id="clientes">0</h2>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3 col-sm-6">
         <div class="metric-card p-3" style="background:#f59e0b;">
           <div class="card-title-muted">En tránsito</div>
           <h2 id="transito">0</h2>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3 col-sm-6">
         <div class="metric-card p-3" style="background:#16a34a;">
           <div class="card-title-muted">Entregados</div>
           <h2 id="entregado">0</h2>
         </div>
       </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="metric-card p-3" style="background:#0f766e;">
+          <div class="card-title-muted">Total ingresos</div>
+          <h2 id="ingresos">$0.00</h2>
+        </div>
+      </div>
     </div>
 
-    <div class="surface p-3 mt-4">
-      <h6 class="mb-3">Resumen de estados</h6>
-      <canvas id="graficoEstados" height="90"></canvas>
+    <div class="row g-3 mt-1">
+      <div class="col-lg-6">
+        <div class="surface p-3 h-100">
+          <h6 class="mb-3">Envíos por estado</h6>
+          <canvas id="graficoEstados" height="120"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="surface p-3 h-100">
+          <h6 class="mb-3">Envíos por día</h6>
+          <canvas id="graficoEnviosDia" height="120"></canvas>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="surface p-3">
+          <h6 class="mb-3">Ingresos por fecha</h6>
+          <canvas id="graficoFechas" height="100"></canvas>
+        </div>
+      </div>
     </div>
   </main>
 </div>
