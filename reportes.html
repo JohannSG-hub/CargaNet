@@ -32,6 +32,35 @@
     </div>
 
     <div class="surface p-3 mb-3">
+      <h6 class="mb-3">Filtros</h6>
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-3">
+          <label for="fechaDesde" class="form-label mb-1">Fecha desde</label>
+          <input id="fechaDesde" type="date" class="form-control">
+        </div>
+        <div class="col-12 col-md-3">
+          <label for="fechaHasta" class="form-label mb-1">Fecha hasta</label>
+          <input id="fechaHasta" type="date" class="form-control">
+        </div>
+        <div class="col-12 col-md-3">
+          <label for="filtroEstado" class="form-label mb-1">Estado</label>
+          <select id="filtroEstado" class="form-select">
+            <option value="">Todos</option>
+            <option value="almacen">Almacén</option>
+            <option value="transito">Tránsito</option>
+            <option value="entregado">Entregado</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label for="filtroCliente" class="form-label mb-1">Cliente</label>
+          <select id="filtroCliente" class="form-select">
+            <option value="">Todos</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="surface p-3 mb-3">
       <div class="d-flex gap-2 flex-wrap">
         <button onclick="exportExcel()" class="btn btn-success">Exportar Excel</button>
         <button onclick="exportPDF()" class="btn btn-danger">Exportar PDF</button>
